@@ -1,0 +1,15 @@
+  Mass    mu0   FC0      FC1         FC2      FC3  sigOptInt
+  61.4  53.3924  0  0.094165087  0.230128258   1    0.08152
+  61.5  53.3898  0  0.094066657  0.229909084   1    0.0815
+  61.6  53.3871  0  0.093968393  0.229690318   1    0.08137
+  61.7  53.3842  0  0.093872344  0.229472391   1    0.08111
+  61.8  53.3811  0  0.09377289   0.229255298   1    0.08083
+  61.9  53.3779  0  0.093677346  0.229040483   1    0.08057
+  62.0  53.3745  0  0.093580268  0.228824626   1    0.07116
+  62.1  53.371   0  0.093485226  0.228611043   1    0.07112
+  
+  The tolerance was set to 0.0001 for the integrations for x and mu, and
+  for the root-finding in the Optimum Interval itself.  The
+  Matlab-computed limit curve turns down slightly at ~61.5, then really  
+  jumps at 62.  The curve is well-behaved at lower and higher masses.  In
+  each case sigma0 is 1e-42 cm2.

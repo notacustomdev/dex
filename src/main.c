@@ -18,7 +18,7 @@ int main (int argc, char **argv)
   Iflag = 1;
   If = 1;
   n=2;
-  float cl, muB, xsec, mu0;
+  float cl, muB, xsec, mu0, chi_M;
   cl = .95;
   muB = .0;
   mu0 = .0;
@@ -36,7 +36,7 @@ int main (int argc, char **argv)
           {"muB",  required_argument,       0, 'b'},
           {"cross-section",  required_argument, 0, 's'},
           {"confidence",  required_argument, 0, 'c'},
-          {"mass",    required_argument, 0, 'M'},
+          {"mass",    required_argument, 0, 'm'},
           {"input",    required_argument, 0, 'i'},
           {"output",    required_argument, 0, 'o'},
 	        {"help",    no_argument, 0, 'h'},
@@ -45,7 +45,7 @@ int main (int argc, char **argv)
       /* getopt_long stores the option index here. */
       int option_index = 0;
 
-      c = getopt_long (argc, argv, "n:b:s:c:M:hi:o:",
+      c = getopt_long (argc, argv, "n:b:s:c:m:hi:o:",
                        long_options, &option_index);
 
       /* Detect the end of the options. */
@@ -93,8 +93,9 @@ int main (int argc, char **argv)
           cl = atof(optarg);
           break;
 
-        case 'M':
+        case 'm':
           printf ("DM mass %sGeV\n", optarg);
+          chi_M = atof(optarg);
           break;
 
         case 'h':
@@ -102,6 +103,7 @@ int main (int argc, char **argv)
     -b, --muB expected background events\n\
     -c, --confidence desired confidence level\n\
     -s, --cross-section reference cross-section in cm^2\n\
+    -m, --mass mass of the DM particle (to be appended at the output)\n\
     -i, --input input file: it contains the CDFs for the measured events (already sorted),\n\t\t\t \
      one for each line, lines beginning with # are ignored. Spaces are not allowed!\n\t\t\t \
      The first entry must be 0. and the last must be 1.\n\
@@ -144,7 +146,6 @@ int main (int argc, char **argv)
   /*count the number of lines without # to allocate the cdf vector*/
   c = 0;
   while ((nread = getline(&line, &len, fin)) != -1) {
-    printf("Retrieved line of length %zd:\n", nread);
     if(!(line[0] == '#'))
       c++;
   }
@@ -162,7 +163,6 @@ int main (int argc, char **argv)
   while ((nread = getline(&line, &len, fin)) != -1) {
     if(!(line[0] == '#'))
       cdfevt[c++] = atof(line);
-    printf("read %f\n", cdfevt[c-1]);
   }
 
   fclose(fin);
@@ -179,18 +179,18 @@ int main (int argc, char **argv)
 
   printf("Upper limit mu0: %f\n", upl);
   printf("Upper limit: %.4ecm^2\n", (xsec/mu0)*upl);
-  
+  printf("Iflag: %d\n", Iflag);
   free(cdfevt);
 
   FILE *fout;
   /*check if the output file exists*/
   if( access(outputFile, F_OK ) != 0 ) {
     fout = fopen(outputFile, "a");
-    fprintf(fout, "#dex written file (using Yellin's code) with: CL: %f, If: %d, mu0: %f, muB: %f\n%.10e\n", 
-            cl, If, mu0, muB, upl);
+    fprintf(fout, "#dex written file (using Yellin's code) with: CL: %f, If: %d, muB: %f\n%f %.10e %d\n", 
+            cl, If, muB, chi_M, (xsec/mu0)*upl, Iflag);
   } else {
     fout = fopen(outputFile, "a");
-    fprintf(fout, "%.10e\n", upl);
+    fprintf(fout, "%f %.10e %d\n", chi_M, (xsec/mu0)*upl, Iflag);
   }
 
   fclose(fout);

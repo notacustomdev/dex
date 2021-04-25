@@ -92,7 +92,7 @@ int main (int argc, char **argv)
           break;
 
         case 'h':
-	  printf ("dex: dark exclusion\nUsage:\n-n, --mu0 expected signal events\n\
+	  printf ("dex: dark exclusion\nUsage:\n\
     -b, --muB expected background events\n\
     -c, --confidence desired confidence level\n\
     -s, --cross-section reference cross-section in cm^2\n\
@@ -123,7 +123,7 @@ int main (int argc, char **argv)
       putchar ('\n');
     }
 
-  printf("Running with the following settings:\ncross-section: %.4ecm^2\nmu0: %f\nmuB: %f\nConfidence level: %f\n", xsec, mu0, muB, cl*100.);
+  printf("Running with the following settings:\ncross-section: %.4ecm^2\nmuB: %f\nConfidence level: %f\n", xsec, muB, cl*100.);
 
   FILE *fin = fopen(inputFile, "r");
 
@@ -166,7 +166,7 @@ int main (int argc, char **argv)
   }
 
   printf("mu0: %f\n", mu0);
-  
+
   fclose(fin);
   free(line);
   

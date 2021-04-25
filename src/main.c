@@ -3,6 +3,7 @@
 #include <getopt.h>
 #include <errno.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "yellin_wrap.h"
 
@@ -11,6 +12,9 @@ int main (int argc, char **argv)
 
   int n, If, Iflag;
   
+  char *inputFile=0;
+  char *outputFile=0;
+
   Iflag = 1;
   If = 1;
   n=2;
@@ -33,13 +37,15 @@ int main (int argc, char **argv)
           {"cross-section",  required_argument, 0, 's'},
           {"confidence",  required_argument, 0, 'c'},
           {"mass",    required_argument, 0, 'M'},
+          {"input",    required_argument, 0, 'i'},
+          {"output",    required_argument, 0, 'o'},
 	        {"help",    no_argument, 0, 'h'},
           {0, 0, 0, 0}
         };
       /* getopt_long stores the option index here. */
       int option_index = 0;
 
-      c = getopt_long (argc, argv, "n:b:s:c:M:h",
+      c = getopt_long (argc, argv, "n:b:s:c:M:hi:o:",
                        long_options, &option_index);
 
       /* Detect the end of the options. */
@@ -65,6 +71,18 @@ int main (int argc, char **argv)
           muB = atof(optarg);
           break;
 
+        case 'i':
+          printf ("input file = %s\n", optarg);
+          inputFile = (char*) malloc(strlen(optarg)+1);
+          strcpy(inputFile, optarg);
+          break;
+
+        case 'o':
+          printf ("output file = %s\n", optarg);
+          outputFile = (char*) malloc(strlen(optarg)+1);
+          strcpy(outputFile, optarg);
+          break;
+
         case 's':
           printf ("cross-section = %s\n", optarg);
           xsec = atof(optarg);
@@ -80,7 +98,20 @@ int main (int argc, char **argv)
           break;
 
         case 'h':
-	  printf ("Usage:\n-n, --mu0 expected signal events\n-b, --muB expected background events\n-c, --confidence desired confidence level\n-s, --cross-section reference cross-section in cm^2\n");          
+	  printf ("dex: dark exclusion\nUsage:\n-n, --mu0 expected signal events\n\
+    -b, --muB expected background events\n\
+    -c, --confidence desired confidence level\n\
+    -s, --cross-section reference cross-section in cm^2\n\
+    -i, --input input file: it contains the CDFs for the measured events (already sorted),\n\t\t\t \
+     one for each line, lines beginning with # are ignored. Spaces are not allowed!\n\t\t\t \
+     The first entry must be 0. and the last must be 1.\n\
+    -o, --output File into which the output is written. If the file already exists, the output will be appended as a new line.\n\t\t\t\
+      If the file is newly created a first comment line with the input parameters is written.\n");  
+          if(inputFile)
+            free(inputFile);
+          if(outputFile)
+            free(outputFile);
+
           exit(0);
 
         default:
@@ -99,11 +130,76 @@ int main (int argc, char **argv)
 
   printf("Running with the following settings:\ncross-section: %.4ecm^2\nmu0: %f\nmuB: %f\nConfidence level: %f\n", xsec, mu0, muB, cl*100.);
 
-  float cdfevt[] = {0., 0.05263, 0.47368, 1.};
+  FILE *fin = fopen(inputFile, "r");
+
+  char *line = NULL;
+  size_t len = 0;
+  ssize_t nread;
+
+  if (fin == NULL) {
+    perror("fopen");
+    exit(EXIT_FAILURE);
+  }
+
+  /*count the number of lines without # to allocate the cdf vector*/
+  c = 0;
+  while ((nread = getline(&line, &len, fin)) != -1) {
+    printf("Retrieved line of length %zd:\n", nread);
+    if(!(line[0] == '#'))
+      c++;
+  }
+
+  
+  
+  printf("Found %d lines containing data\n", c);
+
+  fseek(fin, 0, SEEK_SET );
+
+  float *cdfevt = malloc(sizeof(float)*c);
+  
+  /*read the data and fill the cdf vector*/
+  c = 0;
+  while ((nread = getline(&line, &len, fin)) != -1) {
+    if(!(line[0] == '#'))
+      cdfevt[c++] = atof(line);
+    printf("read %f\n", cdfevt[c-1]);
+  }
+
+  fclose(fin);
+  free(line);
+  
   bool usenew = true;
+
+  /*store the result*/
+  float upl;
+  
   yellin_init();
-  printf("Upper limit mu0:%.4e\n", upperlim(cl, If, n, cdfevt, muB, 0, &Iflag, usenew));
-  printf("Upper limit:%.4ecm^2\n", (xsec/mu0)*upperlim(cl, If, n, cdfevt, muB, 0, &Iflag, usenew));
+  upl = upperlim(cl, If, n, cdfevt, muB, 0, &Iflag, usenew);
   yellin_end();
+
+  printf("Upper limit mu0: %f\n", upl);
+  printf("Upper limit: %.4ecm^2\n", (xsec/mu0)*upl);
+  
+  free(cdfevt);
+
+  FILE *fout;
+  /*check if the output file exists*/
+  if( access(outputFile, F_OK ) != 0 ) {
+    fout = fopen(outputFile, "a");
+    fprintf(fout, "#dex written file (using Yellin's code) with: CL: %f, If: %d, mu0: %f, muB: %f\n%.10e\n", 
+            cl, If, mu0, muB, upl);
+  } else {
+    fout = fopen(outputFile, "a");
+    fprintf(fout, "%.10e\n", upl);
+  }
+
+  fclose(fout);
+
+  if(inputFile)
+    free(inputFile);
+  
+  if(outputFile)
+    free(outputFile);
+  
   exit (0);
 }

@@ -8,7 +8,7 @@ dex: dark exclusion\nUsage:
     -s, --cross-section reference cross-section in cm^2  
     -i, --input input file: it contains the CDFs for the measured events (already sorted),  
      one for each line, lines beginning with # are ignored. Spaces are not allowed!  
-     The first entry must be 0. and the last must be 1.  
+     The first valid entry is the total number of expected events, the second valid entry must be 0. and the last must be 1.  
     -o, --output File into which the output is written. If the file already exists, the output will be appended as a new line.  
       If the file is newly created a first comment line with the input parameters is written.  
 

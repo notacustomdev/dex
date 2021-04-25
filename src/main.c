@@ -10,14 +10,14 @@
 int main (int argc, char **argv)
 {
 
-  int n, If, Iflag;
+  int If, Iflag;
   
   char *inputFile=0;
   char *outputFile=0;
 
   Iflag = 1;
   If = 1;
-  n=2;
+  
   float cl, muB, xsec, mu0, chi_M;
   cl = .95;
   muB = .0;
@@ -30,9 +30,7 @@ int main (int argc, char **argv)
     {
       static struct option long_options[] =
         {
-          /* One needs either to get a cross-section
-             or the number of excluded events*/
-          {"mu0",     required_argument,       0, 'n'},
+          /*parameters to determine the limit*/
           {"muB",  required_argument,       0, 'b'},
           {"cross-section",  required_argument, 0, 's'},
           {"confidence",  required_argument, 0, 'c'},
@@ -45,7 +43,7 @@ int main (int argc, char **argv)
       /* getopt_long stores the option index here. */
       int option_index = 0;
 
-      c = getopt_long (argc, argv, "n:b:s:c:m:hi:o:",
+      c = getopt_long (argc, argv, "b:s:c:m:hi:o:",
                        long_options, &option_index);
 
       /* Detect the end of the options. */
@@ -59,11 +57,6 @@ int main (int argc, char **argv)
           if (optarg)
             printf (" with arg %s", optarg);
           printf ("\n");
-          break;
-
-        case 'n':
-          printf ("mu0 = %s\n", optarg);
-          mu0 = atof(optarg);
           break;
 
         case 'b':
@@ -144,37 +137,46 @@ int main (int argc, char **argv)
   }
 
   /*count the number of lines without # to allocate the cdf vector*/
-  c = 0;
+  size_t n = 0;
   while ((nread = getline(&line, &len, fin)) != -1) {
     if(!(line[0] == '#'))
-      c++;
+      n++;
   }
+  
+  printf("Found %ld lines containing data\n", n);
 
-  
-  
-  printf("Found %d lines containing data\n", c);
+  n--;//one line is the number of expected events
 
   fseek(fin, 0, SEEK_SET );
 
-  float *cdfevt = malloc(sizeof(float)*c);
+  float *cdfevt = malloc(sizeof(float)*n);
   
   /*read the data and fill the cdf vector*/
-  c = 0;
+  n = 0;
+  bool firstzero = false;
   while ((nread = getline(&line, &len, fin)) != -1) {
-    if(!(line[0] == '#'))
-      cdfevt[c++] = atof(line);
+    if(!(line[0] == '#')){
+      if(!firstzero){
+        mu0 = atof(line);
+        firstzero = true;
+        continue;
+      }
+      cdfevt[n++] = atof(line);
+    }
   }
 
+  printf("mu0: %f\n", mu0);
+  
   fclose(fin);
   free(line);
   
   bool usenew = true;
-
+ 
   /*store the result*/
   float upl;
   
   yellin_init();
-  upl = upperlim(cl, If, n, cdfevt, muB, 0, &Iflag, usenew);
+  upl = upperlim(cl, If, n-2, cdfevt,   muB, 0, &Iflag, usenew);
   yellin_end();
 
   printf("Upper limit mu0: %f\n", upl);
